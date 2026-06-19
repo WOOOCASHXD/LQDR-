@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="pl" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromoHub POS - Interaktywny Panel Sprzedaży</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins & Lato -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Canvas Confetti for Gamification celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Lato', 'sans-serif'],
+                        poppins: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#0b0f19',
+                            slate: '#0f172a',
+                            border: '#1e293b',
+                            accent: '#10b981', /* Szmaragdowy sukces */
+                            blue: '#3b82f6', /* Technologiczny błękit */
+                            orange: '#f59e0b', /* Uwaga / Limitowane */
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Stylizacja scrollbara dla zachowania eleganckiego wyglądu POS */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white" onload="initApp()">
+
+    <!-- GŁÓWNY KONTENER APLIKACJI -->
+    <div class="flex h-screen overflow-hidden bg-slate-950">
+
+        <!-- PANEL BOCZNY (SIDEBAR) -->
+        <aside class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0">
+            <div>
+                <!-- LOGO & STATUS -->
+                <div class="p-6 border-b border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20 text-emerald-400">
+                            <i class="fa-solid fa-tags text-2xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="font-poppins font-bold text-xl tracking-tight text-white">PromoHub <span class="text-emerald-500">POS</span></h1>
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span class="text-xs text-slate-400 font-medium">Terminal Live Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AKTYWNY PROFIL SPRZEDAWCY (Faza 2 - grywalizacja na widoku) -->
+                <div class="p-6 border-b border-slate-800 bg-slate-950/40">
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <div class="h-12 w-12 rounded-full bg-emerald-500/10 border border-emerald-500 flex items-center justify-center text-emerald-400 font-bold text-lg font-poppins">
+                                KS
+                            </div>
+                            <span class="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-blue-500 border-2 border-slate-900 flex items-center justify-center text-[8px] text-white font-bold">2</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h2 id="profile-name" class="font-semibold text-white truncate text-base">Kamil Sprzedawca</h2>
+                            <p class="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-award"></i> Poziom 4 (Ekspert Retail)
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Postęp do następnego poziomu -->
+                    <div class="mt-4">
+                        <div class="flex justify-between text-xs font-semibold mb-1 text-slate-400">
+                            <span>PD do awansu</span>
+                            <span id="profile-xp">420 / 600 XP</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div id="profile-xp-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 70%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NAWIGACJA WEWNĘTRZNA -->
+                <nav class="p-4 space-y-1">
+                    <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-chart-line text-lg"></i>
+                            Baza Promocji (Faza 1)
+                        </span>
+                        <span class="bg-emerald-500/20 text-emerald-300 text-xs px-2 py-0.5 rounded-full font-bold" id="badge-promo-count">5</span>
+                    </button>
+
+                    <button onclick="switchTab('gamification')" id="btn-gamification" class="tab-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-white border border-transparent">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-gamepad text-lg"></i>
+                            Grywalizacja (Faza 2)
+                        </span>
+                        <span class="bg-blue-500/20 text-blue-300 text-xs px-2 py-0.5 rounded-full font-bold">LIVE</span>
+                    </button>
+
+                    <button onclick="switchTab('admin')" id="btn-admin" class="tab-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-white border border-transparent">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-sliders text-lg"></i>
+                            Panel Managera
+                        </span>
+                        <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">ADMIN</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- STOPKA SYSTEMOWA & INFO O SALONIE -->
+            <div class="p-6 border-t border-slate-800 bg-slate-950/50">
+                <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
+                    <span>Salon: <strong>Katowice Galeria</strong></span>
+                    <span class="text-slate-500">ID: #KTW-02</span>
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button onclick="showHelpModal()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-circle-question text-emerald-400"></i> Pomoc
+                    </button>
+                    <button onclick="resetSimData()" class="px-2 py-2 bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-400 rounded-lg text-xs border border-slate-700 hover:border-red-500/30 transition" title="Resetuj dane symulacji">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- OBSZAR GŁÓWNY (MAIN VIEWPORT) -->
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-950 overflow-hidden relative">
+
+            <!-- PASEK GÓRNY (HEADER BAR) -->
+            <header class="h-20 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/50 shrink-0">
+                <div class="flex items-center gap-4 flex-1">
+                    <!-- PASEK POWIADOMIEŃ / TICKER -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-full py-1.5 px-4 flex items-center gap-2 max-w-xl flex-1">
+                        <span class="text-xs uppercase tracking-wider font-bold bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 animate-pulse">Ważne</span>
+                        <div class="text-xs text-slate-300 font-medium overflow-hidden truncate">
+                            <span id="ticker-text">Od dziś zmiana zasad łączenia promocji na akcesoria OXVA! Sprawdź karty produktów.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DANE GRYWALIZACYJNE GŁÓWNE (PUNKTY I POZYCJA) -->
+                <div class="flex items-center gap-6">
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400 font-medium block">Moje punkty dzisiaj</span>
+                        <span id="header-points" class="font-poppins font-bold text-emerald-400 text-lg flex items-center justify-end gap-1">
+                            <i class="fa-solid fa-coins"></i> 1,450 pkt
+                        </span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-800"></div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400 font-medium block">Pozycja w sieci</span>
+                        <span id="header-rank" class="font-poppins font-bold text-blue-400 text-lg flex items-center justify-end gap-1">
+                            <i class="fa-solid fa-trophy"></i> #3 / 48
+                        </span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- KONTENER NA TREŚĆ ZAKŁADEK -->
+            <div class="flex-1 overflow-y-auto p-8 relative">
+
+                <!-- TAB 1: BAZA PROMOCJI (FAZA 1) -->
+                <section id="tab-dashboard" class="tab-content space-y-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-2xl font-poppins font-bold text-white">Aktywne Promocje i Baza Wiedzy</h2>
+                            <p class="text-slate-400 text-sm mt-0.5">Wyszukaj ofertę, skopiuj kod rabatowy do schowka i postępuj zgodnie z instrukcją kasową.</p>
+                        </div>
+                        
+                        <!-- FILTROWANIE I WYSZUKIWARKA -->
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Szukajka -->
+                            <div class="relative">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                                <input type="text" id="search-input" oninput="filterPromotions()" placeholder="Nazwa, kod, EAN..." class="bg-slate-900 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-60 text-slate-100 placeholder:text-slate-500">
+                            </div>
+                            <!-- Filtry Kategorii -->
+                            <div class="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
+                                <button onclick="setCategoryFilter('all')" id="cat-all" class="cat-btn px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-500 text-white transition-all">Wszystkie</button>
+                                <button onclick="setCategoryFilter('Urządzenia')" id="cat-devices" class="cat-btn px-3 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all">Urządzenia</button>
+                                <button onclick="setCategoryFilter('Płyny')" id="cat-liquids" class="cat-btn px-3 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all">Płyny</button>
+                                <button onclick="setCategoryFilter('Akcesoria')" id="cat-accessories" class="cat-btn px-3 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all">Akcesoria</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GRID Z KARTAMI PROMOCJI -->
+                    <div id="promotions-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <!-- Generowane dynamicznie przez JS -->
+                    </div>
+                </section>
+
+                <!-- TAB 2: GRYWALIZACJA (FAZA 2) -->
+                <section id="tab-gamification" class="tab-content hidden space-y-8">
+                    <div>
+                        <h2 class="text-2xl font-poppins font-bold text-white">Moduł Grywalizacji i Wyników</h2>
+                        <p class="text-slate-400 text-sm mt-0.5">Realizuj wyznaczone cele sprzedażowe, zbieraj punkty XP i odbieraj nagrody dla swojego zespołu.</p>
+                    </div>
+
+                    <!-- TARGETY INDYWIDUALNE I ZESPOŁOWE -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Targety Indywidualne -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                <h3 class="font-poppins font-semibold text-lg text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-user text-emerald-400"></i> Moje Cele Indywidualne
+                                </h3>
+                                <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full font-bold border border-emerald-500/20">Moje bonusy</span>
+                            </div>
+                            <div id="individual-targets-container" class="space-y-4">
+                                <!-- Generowane dynamicznie -->
+                            </div>
+                        </div>
+
+                        <!-- Targety Zespołowe -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                <h3 class="font-poppins font-semibold text-lg text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-users text-blue-400"></i> Cel Zespołowy (Katowice Galeria)
+                                </h3>
+                                <span class="text-xs bg-blue-500/10 text-blue-400 px-2.5 py-1 rounded-full font-bold border border-blue-500/20">Premia wspólna</span>
+                            </div>
+                            <div id="team-targets-container" class="space-y-4">
+                                <!-- Generowane dynamicznie -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TABELA LIDERA (LEADERBOARD) & MOJE ODZNAKI -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- Tabela Liderów -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 col-span-2 space-y-4">
+                            <h3 class="font-poppins font-semibold text-lg text-white border-b border-slate-800 pb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-ranking-star text-amber-400"></i> Ranking Punktów w Sieci Retail
+                            </h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="text-xs text-slate-500 uppercase border-b border-slate-800 font-semibold">
+                                            <th class="py-3 px-4">Poz.</th>
+                                            <th class="py-3 px-4">Pracownik</th>
+                                            <th class="py-3 px-4">Salon</th>
+                                            <th class="py-3 px-4 text-right">Punkty dzienne</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="leaderboard-tbody" class="text-sm font-medium">
+                                        <!-- Generowane dynamicznie -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Moje Odznaki (Kolekcja) -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                            <h3 class="font-poppins font-semibold text-lg text-white border-b border-slate-800 pb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-medal text-emerald-400"></i> Moje Odznaki (Badges)
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3" id="badges-container">
+                                <!-- Generowane dynamicznie -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: PANEL ADMINA (MANAGING PROMOTIONS) -->
+                <section id="tab-admin" class="tab-content hidden space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-poppins font-bold text-white">Panel Managera i Administratora</h2>
+                        <p class="text-slate-400 text-sm mt-0.5">Zarządzaj promocjami, wysyłaj komunikaty i motywuj zespoły sprzedażowe w czasie rzeczywistym.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Kreator Promocji -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 lg:col-span-2">
+                            <h3 class="font-poppins font-semibold text-lg text-white border-b border-slate-800 pb-3">
+                                <i class="fa-solid fa-plus text-emerald-400 mr-2"></i>Dodaj Nową Akcję Promocyjną (Live Update)
+                            </h3>
+                            <form id="add-promo-form" onsubmit="createNewPromo(event)" class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Tytuł Promocji</label>
+                                        <input type="text" id="new-promo-title" required placeholder="np. Wyprzedaż rocznika -30%" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Kod Rabatowy</label>
+                                        <input type="text" id="new-promo-code" required placeholder="np. ROZNIK30" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Kategoria</label>
+                                        <select id="new-promo-category" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                                            <option value="Urządzenia">Urządzenia</option>
+                                            <option value="Płyny">Płyny</option>
+                                            <option value="Akcesoria">Akcesoria</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Limitowana Akcja</label>
+                                        <select id="new-promo-limit" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                                            <option value="false">Nie (Akcja ogólna)</option>
+                                            <option value="true">Tak (HOT / Limitowana)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Okres Ważności</label>
+                                        <input type="text" id="new-promo-valid" required placeholder="np. Do niedzieli!" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Instrukcja kasowa (ściąga krok po kroku)</label>
+                                    <textarea id="new-promo-inst" rows="2" required placeholder="np. Nabij dowolny mod, przejdź do płatności, wpisz kod rabatowy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"></textarea>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Zasada Łączenia Promocji</label>
+                                        <input type="text" id="new-promo-rule" required placeholder="np. Nie łączy się z innymi przecenami" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Szybka Ścieżka (Ikona)</label>
+                                        <select id="new-promo-icon" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                                            <option value="fa-percent">Kupon / Rabat (%)</option>
+                                            <option value="fa-gift">Prezent / Gratis</option>
+                                            <option value="fa-bolt">Szybka Akcja</option>
+                                            <option value="fa-fire">Błyskawiczna (Hot)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-6 rounded-xl transition duration-150 flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Opublikuj na punktach (Live Push)
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- System Powiadomień i Zmiany Tickerów -->
+                        <div class="space-y-6">
+                            <!-- Szybkie powiadomienie push -->
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                                <h3 class="font-poppins font-semibold text-lg text-white border-b border-slate-800 pb-3">
+                                    <i class="fa-solid fa-bullhorn text-amber-500 mr-2"></i>Live Ticker Message
+                                </h3>
+                                <div>
+                                    <label class="block text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">Treść pilnego paska u góry</label>
+                                    <input type="text" id="ticker-input" placeholder="Wpisz ważną treść dla wszystkich salonów..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500">
+                                </div>
+                                <button onclick="updateTickerText()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 px-4 rounded-xl text-sm transition duration-150">
+                                    Zaktualizuj pasek informacyjny
+                                </button>
+                            </div>
+
+                            <!-- Zarządzanie Systemem (Szybka makieta) -->
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                                <h3 class="font-poppins font-semibold text-lg text-white border-b border-slate-800 pb-3">
+                                    <i class="fa-solid fa-cloud text-blue-500 mr-2"></i>Status Usług PromoHub
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between text-xs border-b border-slate-800 pb-2">
+                                        <span class="text-slate-400">Połączenie z bazą kasy</span>
+                                        <span class="text-emerald-400 font-bold"><i class="fa-solid fa-circle text-[8px] mr-1"></i> Zsynchronizowano</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs border-b border-slate-800 pb-2">
+                                        <span class="text-slate-400">Aktywne salony online</span>
+                                        <span class="text-white font-bold">48 punktów</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-slate-400">Średni czas kopiowania (POS)</span>
+                                        <span class="text-white font-bold">0.4 sek. (Szybko!)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- PANEL SYMULATORA KASY (FLOAT-PANEL Z WYGODNYM WYGŁĄDEM) -->
+        <section class="w-96 bg-slate-900 border-l border-slate-800 flex flex-col justify-between shrink-0">
+            <!-- Nagłówek Symulatora -->
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center gap-2.5 text-blue-400">
+                    <i class="fa-solid fa-cash-register text-2xl"></i>
+                    <div>
+                        <h2 class="font-poppins font-bold text-lg text-white">Symulator Kasy POS</h2>
+                        <p class="text-[11px] text-slate-400 font-medium leading-none mt-1">Narzędzie do testowania Fazy 1 & Fazy 2</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zawartość kasy -->
+            <div class="p-6 flex-1 overflow-y-auto space-y-6">
+                <p class="text-xs text-slate-400 leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800/60">
+                    <i class="fa-solid fa-circle-info text-blue-400 mr-1"></i>
+                    <strong>Jak testować?</strong> Skopiuj kod rabatowy z dowolnej karty obok, wklej go w polu na kod, wybierz sprzedany produkt i kliknij <strong>Zrealizuj sprzedaż</strong>. Zobaczysz jak na żywo aktualizują się Twoje cele i punkty grywalizacyjne!
+                </p>
+
+                <!-- Panel kasy w akcji -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">1. Wybierz Sprzedawany Towar</label>
+                        <select id="sim-product-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+                            <option value="OXVA Mod Pod Kit">OXVA Xlim Pro Kit (Urządzenie)</option>
+                            <option value="Aroma King E-Liquid">Aroma King Premium Liquid (Płyny)</option>
+                            <option value="OXVA Grzałka V2">OXVA Wymienna Grzałka (Akcesorium)</option>
+                            <option value="Zestaw Startowy">Zestaw Startowy Premium (Urządzenie)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">2. Wklej / Wpisz Kod Rabatowy</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="sim-code-input" placeholder="Wklej kod (Ctrl+V)" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 uppercase">
+                            <button onclick="pasteFromClipboard()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 rounded-xl border border-slate-700 text-xs font-semibold" title="Wklej bezpośrednio">
+                                <i class="fa-solid fa-clipboard-check"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 border border-slate-800/60 rounded-xl p-4 space-y-2.5">
+                        <div class="flex justify-between text-xs text-slate-400 font-semibold">
+                            <span>Suma bazowa koszyka</span>
+                            <span>120.00 PLN</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-emerald-400 font-bold">
+                            <span>Aktywny rabat (PromoHub)</span>
+                            <span id="sim-discount-val">-0.00 PLN</span>
+                        </div>
+                        <div class="h-px bg-slate-800"></div>
+                        <div class="flex justify-between text-sm text-white font-bold">
+                            <span>Do zapłaty</span>
+                            <span id="sim-total-val">120.00 PLN</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Przycisk realizacji transakcji -->
+            <div class="p-6 border-t border-slate-800 bg-slate-950/40">
+                <button onclick="simulateSale()" class="w-full bg-blue-500 hover:bg-blue-600 text-slate-950 font-bold py-3.5 px-6 rounded-xl text-sm transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cash-register"></i> Zrealizuj sprzedaż na kasie
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- POWIADOMIENIA TOAST (FLOATING SYSTEM) -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm pointer-events-none">
+        <!-- Toast powiadomienia będą pojawiać się tutaj -->
+    </div>
+
+    <!-- MODAL POMOCY -->
+    <div id="help-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-poppins font-semibold text-lg text-white flex items-center gap-2">
+                    <i class="fa-solid fa-circle-question text-emerald-400"></i> Jak działa PromoHub POS?
+                </h3>
+                <button onclick="closeHelpModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3 text-sm text-slate-300 leading-relaxed">
+                <p>
+                    <strong>PromoHub POS</strong> to innowacyjny panel stworzony do szybkiego dostarczania kodów promocyjnych do punktów detalicznych i zmotywowania Twoich sprzedawców.
+                </p>
+                <ul class="space-y-2 list-disc list-inside text-xs text-slate-400">
+                    <li><strong class="text-white">Faza 1:</strong> Kliknij zielony przycisk <span class="text-emerald-400">KOPIUJ KOD</span> na dowolnej karcie aktywnej promocji. Kod rabatowy trafi bezpośrednio do prawdziwego schowka systemowego.</li>
+                    <li><strong class="text-white">Interaktywność:</strong> Wykorzystaj Panel Kasy po prawej stronie, aby zasymulować sprzedaż z kodem i zweryfikować jego prawidłowość.</li>
+                    <li><strong class="text-white">Faza 2:</strong> Każda zrealizowana sprzedaż zwiększa poziom wyzwań oraz dodaje Ci punkty (XP), wpływając na miejsce w rankingu całej sieci.</li>
+                    <li><strong class="text-white">Panel Managera:</strong> Chcesz wygenerować własną promocję? Wejdź w Panel Managera, stwórz akcję, a pojawi się ona na żywo na pulpicie!</li>
+                </ul>
+            </div>
+            <button onclick="closeHelpModal()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-sm transition-all">
+                Zrozumiałem, wracam do testów
+            </button>
+        </div>
+    </div>
+
+    <!-- GŁÓWNA LOGIKA INTERAKTYWNA (JAVASCRIPT) -->
+    <script>
+        // 1. DANE STARTOWE (MOCKED DATA)
+        let promotions = [
+            {
+                id: 1,
+                title: "Darmowa Grzałka do OXVA Mod Pod Kit",
+                code: "OXVAKITFREE",
+                category: "Urządzenia",
+                limit: true,
+                valid: "Tylko do niedzieli!",
+                icon: "fa-fire",
+                rule: "Nie łączy się z innymi pakietami urządzeń",
+                instruction: "Nabij zestaw OXVA Mod Pod. Dodaj grzałkę V2. Użyj przycisku rabatowego wklejając skopiowany kod. Cena grzałki spadnie do 0.01 PLN.",
+                accent: "emerald"
+            },
+            {
+                id: 2,
+                title: "Drugi Płyn Aroma King Premium -50%",
+                code: "LIQKING50",
+                category: "Płyny",
+                limit: false,
+                valid: "Do końca miesiąca",
+                icon: "fa-percent",
+                rule: "Działa na dowolny płyn marki Aroma King",
+                instruction: "Dodaj do paragonu dwa płyny Aroma King. Na drugi płyn (tańszy lub o tej samej cenie) wprowadź rabat kwotowy równy połowie jego wartości.",
+                accent: "emerald"
+            },
+            {
+                id: 3,
+                title: "Super Zestaw Startowy z płynem",
+                code: "PROMOSTART",
+                category: "Urządzenia",
+                limit: false,
+                valid: "Do odwołania",
+                icon: "fa-gift",
+                rule: "Łączy się z programem lojalnościowym",
+                instruction: "Nabij Zestaw Startowy. Dodaj dowolny Aroma King liquid. Kod PromoStart obniży wartość płynu w koszyku do kwoty równej 1 PLN.",
+                accent: "blue"
+            },
+            {
+                id: 4,
+                title: "Wyprzedaż akcesoriów - 3 grzałka gratis",
+                code: "COILS3FREE",
+                category: "Akcesoria",
+                limit: true,
+                valid: "Limitowany asortyment",
+                icon: "fa-bolt",
+                rule: "Wyłącznie przy zakupie 3 takich samych modeli",
+                instruction: "Nabij na kasę dokładnie 3 sztuki wymiennych grzałek OXVA V2. Wpisz kod, by wyzerować wartość trzeciej sztuki w podsumowaniu transakcji.",
+                accent: "orange"
+            }
+        ];
+
+        let gamificationTargets = {
+            individual: [
+                { id: "ind-1", title: "Zrealizuj promocję OXVAKITFREE", current: 8, target: 12, unit: "szt.", xp: 150, category: "Urządzenia" },
+                { id: "ind-2", title: "Przekonaj do płynu Aroma King LIQKING50", current: 14, target: 20, unit: "szt.", xp: 100, category: "Płyny" }
+            ],
+            team: [
+                { id: "team-1", title: "Suma promocji kasy w Katowicach", current: 142, target: 200, unit: "akcji", xp: 500 }
+            ]
+        };
+
+        let stats = {
+            points: 1450,
+            rank: 3,
+            xp: 420,
+            level: 4
+        };
+
+        let leaderboard = [
+            { pos: 1, name: "Adrian Kowalski", salon: "Warszawa Złote", points: 1850, self: false },
+            { pos: 2, name: "Anna Nowak", salon: "Wrocław Wroclavia", points: 1590, self: false },
+            { pos: 3, name: "Kamil Sprzedawca", salon: "Katowice Galeria", points: 1450, self: true },
+            { pos: 4, name: "Marta Wiśniewska", salon: "Poznań Plaza", points: 1210, self: false },
+            { pos: 5, name: "Piotr Zieliński", salon: "Gdańsk Forum", points: 1100, self: false }
+        ];
+
+        let badges = [
+            { id: 1, name: "Szybki Palec", desc: "Skopiuj 50 kodów z rzędu", unlocked: true, icon: "fa-bolt", color: "text-amber-400" },
+            { id: 2, name: "Mistrz Sprzedaży", desc: "Zrealizuj target indywidualny", unlocked: true, icon: "fa-star", color: "text-emerald-400" },
+            { id: 3, name: "Zespołowy Gracz", desc: "Osiągnij cel salonu", unlocked: false, icon: "fa-users", color: "text-blue-400" },
+            { id: 4, name: "Promocyjny Rekordzista", desc: "Zrób 50 akcji w 1 dzień", unlocked: false, icon: "fa-trophy", color: "text-purple-400" }
+        ];
+
+        let selectedCategory = 'all';
+
+        // 2. INICJALIZACJA SYSTEMU
+        function initApp() {
+            renderPromotions();
+            renderGamification();
+            renderLeaderboard();
+            renderBadges();
+            updateUIStats();
+        }
+
+        // 3. NAWIGACJA TABAMI
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-white border border-transparent";
+            });
+
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            if (tabId === 'dashboard') {
+                activeBtn.className = "tab-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            } else if (tabId === 'gamification') {
+                activeBtn.className = "tab-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all bg-blue-500/10 text-blue-400 border border-blue-500/20";
+            } else if (tabId === 'admin') {
+                activeBtn.className = "tab-btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all bg-purple-500/10 text-purple-400 border border-purple-500/20";
+            }
+        }
+
+        // 4. RENDERING PROMOCJI (FAZA 1)
+        function renderPromotions() {
+            const grid = document.getElementById('promotions-grid');
+            grid.innerHTML = '';
+
+            const filtered = promotions.filter(promo => {
+                const searchVal = document.getElementById('search-input').value.toLowerCase();
+                const matchesSearch = promo.title.toLowerCase().includes(searchVal) || 
+                                      promo.code.toLowerCase().includes(searchVal) || 
+                                      promo.category.toLowerCase().includes(searchVal);
+                const matchesCat = selectedCategory === 'all' || promo.category === selectedCategory;
+                return matchesSearch && matchesCat;
+            });
+
+            document.getElementById('badge-promo-count').innerText = filtered.length;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-2xl">
+                        <i class="fa-solid fa-folder-open text-4xl mb-3"></i>
+                        <p class="text-sm font-medium">Nie znaleziono promocji o podanych kryteriach.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(promo => {
+                const card = document.createElement('div');
+                const isHot = promo.limit;
+                card.className = `bg-slate-900 border ${isHot ? 'border-amber-500/40 bg-gradient-to-b from-slate-900 to-amber-950/10' : 'border-slate-800'} rounded-2xl p-6 space-y-4 relative flex flex-col justify-between transition-all duration-200 hover:-translate-y-1 hover:border-slate-700`;
+
+                card.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between">
+                            <span class="text-xs uppercase tracking-wider font-extrabold px-3 py-1 rounded-full ${
+                                promo.category === 'Urządzenia' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
+                                promo.category === 'Płyny' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+                                'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                            }">
+                                ${promo.category}
+                            </span>
+                            ${isHot ? `
+                                <span class="text-xs font-bold text-amber-500 flex items-center gap-1 animate-pulse">
+                                    <i class="fa-solid fa-fire"></i> HOT LIMITOWANE
+                                </span>
+                            ` : `
+                                <span class="text-xs text-slate-500 font-medium">${promo.valid}</span>
+                            `}
+                        </div>
+
+                        <h3 class="font-poppins font-bold text-lg text-white leading-snug line-clamp-2">${promo.title}</h3>
+
+                        <div class="bg-slate-950 rounded-xl border border-slate-800/80 p-3.5 flex items-center justify-between">
+                            <div class="font-mono text-base font-bold tracking-wider text-slate-300 select-all select-none">${promo.code}</div>
+                            <button onclick="copyToClipboard('${promo.code}')" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs tracking-wider transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-500/10">
+                                <i class="fa-solid fa-copy"></i> KOPIUJ KOD
+                            </button>
+                        </div>
+
+                        <div class="space-y-2 pt-2 border-t border-slate-800/60">
+                            <h4 class="text-xs text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-info text-blue-400"></i> Instrukcja kasowa:
+                            </h4>
+                            <p class="text-slate-300 text-xs leading-relaxed">${promo.instruction}</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800/40 flex items-center justify-between text-xs text-slate-500">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check text-emerald-500"></i> Aktywna w salonie
+                        </span>
+                        <span class="font-medium text-slate-400">${promo.rule}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 5. OBSŁUGA SCHOWKA (CLIPPBOARD API)
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Skopiowano!", `Kod <strong>${text}</strong> trafił do Twojego schowka systemowego. Wklej go na kasie.`, "success");
+                // Automatycznie wklej do symulatora dla wygody użytkownika!
+                document.getElementById('sim-code-input').value = text;
+                calculateDiscount();
+            }).catch(err => {
+                // Fallback w razie braku uprawnień clipboard
+                showToast("Błąd kopiowania", "Wpisz kod ręcznie w okno kasy.", "error");
+            });
+        }
+
+        // 6. DYNAMICZNE FILTROWANIE I WYSZUKIWANIE
+        function setCategoryFilter(category) {
+            selectedCategory = category;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn px-3 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all";
+            });
+            const selectedBtnId = category === 'all' ? 'cat-all' : 
+                                  category === 'Urządzenia' ? 'cat-devices' : 
+                                  category === 'Płyny' ? 'cat-liquids' : 'cat-accessories';
+            document.getElementById(selectedBtnId).className = "cat-btn px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-500 text-slate-950 transition-all";
+            renderPromotions();
+        }
+
+        function filterPromotions() {
+            renderPromotions();
+        }
+
+        // 7. RENDERING GRYWALIZACJI (FAZA 2)
+        function renderGamification() {
+            const indContainer = document.getElementById('individual-targets-container');
+            indContainer.innerHTML = '';
+
+            gamificationTargets.individual.forEach(target => {
+                const percent = Math.min(Math.round((target.current / target.target) * 100), 100);
+                const isCompleted = percent >= 100;
+                const card = document.createElement('div');
+                card.className = "space-y-2 bg-slate-950 border border-slate-800/80 p-4 rounded-xl";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-bold text-slate-200">${target.title}</p>
+                            <p class="text-xs text-slate-500 font-medium">Kategoria: ${target.category} | Nagroda: <span class="text-emerald-400">+${target.xp} XP</span></p>
+                        </div>
+                        <span class="text-xs font-extrabold font-mono px-2 py-0.5 rounded ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}">${percent}%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                        <div class="${isCompleted ? 'bg-emerald-500' : 'bg-emerald-400'} h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs font-semibold text-slate-400">
+                        <span>Postęp: ${target.current} / ${target.target} ${target.unit}</span>
+                        ${isCompleted ? '<span>Odebrano XP! 🎉</span>' : '<span>W toku</span>'}
+                    </div>
+                `;
+                indContainer.appendChild(card);
+            });
+
+            // Target zespołowy
+            const teamContainer = document.getElementById('team-targets-container');
+            teamContainer.innerHTML = '';
+
+            gamificationTargets.team.forEach(target => {
+                const percent = Math.min(Math.round((target.current / target.target) * 100), 100);
+                const isCompleted = percent >= 100;
+                const card = document.createElement('div');
+                card.className = "space-y-2 bg-slate-950 border border-slate-800/80 p-4 rounded-xl";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-bold text-slate-200">${target.title}</p>
+                            <p class="text-xs text-slate-500 font-medium">Premia wspólna | Premia: <span class="text-blue-400">+${target.xp} XP dla każdego</span></p>
+                        </div>
+                        <span class="text-xs font-extrabold font-mono px-2 py-0.5 rounded ${isCompleted ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-slate-800 text-slate-400'}">${percent}%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                        <div class="${isCompleted ? 'bg-blue-500' : 'bg-blue-400'} h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs font-semibold text-slate-400">
+                        <span>Postęp: ${target.current} / ${target.target} ${target.unit}</span>
+                        ${isCompleted ? '<span>Wszyscy zyskują! 🎁</span>' : '<span>Wspólnie dacie radę! 💪</span>'}
+                    </div>
+                `;
+                teamContainer.appendChild(card);
+            });
+        }
+
+        // 8. RENDERING RANKINGU (LEADERBOARD)
+        function renderLeaderboard() {
+            const tbody = document.getElementById('leaderboard-tbody');
+            tbody.innerHTML = '';
+
+            leaderboard.sort((a,b) => b.points - a.points).forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = `border-b border-slate-800/60 ${item.self ? 'bg-emerald-500/5 text-emerald-400' : 'text-slate-300'}`;
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-bold text-xs">${index + 1}</td>
+                    <td class="py-3 px-4 font-semibold">${item.name} ${item.self ? '<span class="text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded font-extrabold uppercase ml-1.5">Ty</span>' : ''}</td>
+                    <td class="py-3 px-4 text-xs text-slate-400">${item.salon}</td>
+                    <td class="py-3 px-4 text-right font-mono font-bold">${item.points.toLocaleString()} pkt</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 9. RENDERING ODZNAK
+        function renderBadges() {
+            const container = document.getElementById('badges-container');
+            container.innerHTML = '';
+
+            badges.forEach(badge => {
+                const div = document.createElement('div');
+                div.className = `flex flex-col items-center text-center p-3.5 rounded-xl border ${badge.unlocked ? 'bg-slate-950 border-slate-800' : 'bg-slate-950/40 border-slate-900/60 opacity-50'}`;
+                div.innerHTML = `
+                    <i class="fa-solid ${badge.icon} text-2xl mb-2 ${badge.unlocked ? badge.color : 'text-slate-600'}"></i>
+                    <p class="text-xs font-bold text-slate-200 leading-tight">${badge.name}</p>
+                    <p class="text-[9px] text-slate-500 mt-1 leading-snug">${badge.desc}</p>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 10. SYMULATOR CHECKOUTA I SPRZEDAŻY
+        function pasteFromClipboard() {
+            navigator.clipboard.readText().then(text => {
+                document.getElementById('sim-code-input').value = text;
+                calculateDiscount();
+                showToast("Wklejono kod", `Zaaplikowano kod promocyjny: <strong>${text}</strong>`, "info");
+            }).catch(() => {
+                showToast("Zablokowano schowek", "Użyj Ctrl+V lub wpisz ręcznie.", "error");
+            });
+        }
+
+        function calculateDiscount() {
+            const code = document.getElementById('sim-code-input').value.toUpperCase().trim();
+            const discEl = document.getElementById('sim-discount-val');
+            const totalEl = document.getElementById('sim-total-val');
+
+            if (code === 'OXVAKITFREE') {
+                discEl.innerText = "-20.00 PLN";
+                totalEl.innerText = "100.00 PLN";
+            } else if (code === 'LIQKING50') {
+                discEl.innerText = "-15.00 PLN";
+                totalEl.innerText = "105.00 PLN";
+            } else if (code === 'PROMOSTART') {
+                discEl.innerText = "-25.00 PLN";
+                totalEl.innerText = "95.00 PLN";
+            } else if (code === 'COILS3FREE') {
+                discEl.innerText = "-12.00 PLN";
+                totalEl.innerText = "108.00 PLN";
+            } else if (code !== "") {
+                discEl.innerText = "-10.00 PLN"; // domyślny rabat dla nowych kodów z Admin Panelu!
+                totalEl.innerText = "110.00 PLN";
+            } else {
+                discEl.innerText = "-0.00 PLN";
+                totalEl.innerText = "120.00 PLN";
+            }
+        }
+
+        // Słuchaj zmian na wejściu kodu
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('sim-code-input');
+            if (input) {
+                input.addEventListener('input', calculateDiscount);
+            }
+        });
+
+        function simulateSale() {
+            const product = document.getElementById('sim-product-select').value;
+            const code = document.getElementById('sim-code-input').value.toUpperCase().trim();
+
+            if (code === "") {
+                showToast("Wprowadź kod!", "Symulator wymaga podania kodu rabatowego, by przetestować automatyczne kopiowanie oraz grywalizację.", "error");
+                return;
+            }
+
+            // Szukanie czy kod pasuje do bazy
+            const promo = promotions.find(p => p.code.toUpperCase() === code);
+            
+            // 1. Sukces sprzedaży i obliczenie punktów
+            let pointsEarned = 100;
+            let xpEarned = 35;
+
+            if (promo) {
+                pointsEarned += 50; // Extra bonus za prawidłowy kod z bazy
+                xpEarned += 15;
+            }
+
+            stats.points += pointsEarned;
+            stats.xp += xpEarned;
+
+            // Sprawdzenie awansu poziomu
+            if (stats.xp >= 600) {
+                stats.level += 1;
+                stats.xp = stats.xp - 600;
+                // Gratulacje poziomu
+                confetti({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+                showToast("AWANS POZIOMU!", `Gratulacje! Osiągnąłeś poziom ${stats.level} jako ekspert!`, "success");
+            }
+
+            // Aktualizacja celów grywalizacji pod kategorię kodu
+            if (code === 'OXVAKITFREE') {
+                gamificationTargets.individual[0].current = Math.min(gamificationTargets.individual[0].current + 1, gamificationTargets.individual[0].target);
+                // Cele zespołowe też rosną!
+                gamificationTargets.team[0].current += 1;
+            } else if (code === 'LIQKING50') {
+                gamificationTargets.individual[1].current = Math.min(gamificationTargets.individual[1].current + 1, gamificationTargets.individual[1].target);
+                gamificationTargets.team[0].current += 1;
+            } else {
+                gamificationTargets.team[0].current += 1;
+            }
+
+            // Aktualizacja pozycji na tablicy wyników
+            const myRank = leaderboard.find(l => l.self);
+            if (myRank) {
+                myRank.points = stats.points;
+            }
+
+            // Osiągnięcie celu zespołowego? Odblokowuje odznakę
+            if (gamificationTargets.team[0].current >= gamificationTargets.team[0].target && !badges[2].unlocked) {
+                badges[2].unlocked = true;
+                confetti();
+                showToast("NOWA ODZNAKA!", "Twój salon odblokował nagrodę zespołową: Zespołowy Gracz!", "success");
+            }
+
+            // Reset formularza kasy
+            document.getElementById('sim-code-input').value = '';
+            calculateDiscount();
+
+            // Uruchomienie mikro-konfetti na boku
+            confetti({
+                particleCount: 40,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0.7, y: 0.8 }
+            });
+
+            // Odświeżenie danych i interfejsu
+            initApp();
+            showToast("Zrealizowano!", `Naliczono <strong>+${pointsEarned} pkt</strong> oraz <strong>+${xpEarned} XP</strong> na Twoje konto.`, "success");
+        }
+
+        // 11. ADMIN: DODAWANIE NOWEJ PROMOCJI (LIVE PUSH)
+        function createNewPromo(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('new-promo-title').value;
+            const code = document.getElementById('new-promo-code').value.toUpperCase().trim();
+            const category = document.getElementById('new-promo-category').value;
+            const limit = document.getElementById('new-promo-limit').value === "true";
+            const valid = document.getElementById('new-promo-valid').value;
+            const instruction = document.getElementById('new-promo-inst').value;
+            const rule = document.getElementById('new-promo-rule').value;
+            const icon = document.getElementById('new-promo-icon').value;
+
+            const newPromo = {
+                id: promotions.length + 1,
+                title,
+                code,
+                category,
+                limit,
+                valid,
+                icon,
+                rule,
+                instruction
+            };
+
+            // Wrzucamy na początek listy
+            promotions.unshift(newPromo);
+
+            // Powiadomienie o sukcesie
+            showToast("Opublikowano!", `Nowa promocja <strong>${code}</strong> została wysłana do wszystkich terminali sprzedaży na żywo!`, "success");
+
+            // Czyszczenie formularza
+            document.getElementById('add-promo-form').reset();
+
+            // Przełącz do bazy promocji
+            switchTab('dashboard');
+            renderPromotions();
+        }
+
+        // 12. ADMIN: AKTUALIZACJA TICKERA
+        function updateTickerText() {
+            const val = document.getElementById('ticker-input').value;
+            if (val.trim() === "") return;
+
+            document.getElementById('ticker-text').innerText = val;
+            document.getElementById('ticker-input').value = '';
+            showToast("Live Message", "Uaktualniono komunikat na wszystkich terminalach POS sieci.", "info");
+        }
+
+        // 13. TOASTY (NOTYFIKACJE INTERFEJSU)
+        function showToast(title, body, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `transform translate-y-4 opacity-0 transition-all duration-300 pointer-events-auto flex items-start gap-3 w-80 p-4 rounded-xl border ${
+                type === 'success' ? 'bg-slate-900 border-emerald-500/30 text-emerald-400' :
+                type === 'error' ? 'bg-slate-900 border-red-500/30 text-red-400' :
+                'bg-slate-900 border-blue-500/30 text-blue-400'
+            } shadow-2xl`;
+
+            toast.innerHTML = `
+                <div class="text-lg pt-0.5">
+                    <i class="fa-solid ${
+                        type === 'success' ? 'fa-circle-check text-emerald-400' :
+                        type === 'error' ? 'fa-circle-exclamation text-red-400' :
+                        'fa-circle-info text-blue-400'
+                    }"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-bold text-xs uppercase tracking-wider text-slate-100">${title}</p>
+                    <p class="text-xs text-slate-300 mt-1 leading-normal font-medium">${body}</p>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-slate-500 hover:text-slate-300 text-sm"><i class="fa-solid fa-xmark"></i></button>
+            `;
+
+            container.appendChild(toast);
+
+            // Animacja wejścia
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+            }, 10);
+
+            // Auto-usuwanie
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // 14. INNE WIDŻETY INTERAKTYWNE
+        function updateUIStats() {
+            document.getElementById('header-points').innerHTML = `<i class="fa-solid fa-coins"></i> ${stats.points.toLocaleString()} pkt`;
+            document.getElementById('profile-xp').innerText = `${stats.xp} / 600 XP`;
+            document.getElementById('profile-name').innerText = "Kamil Sprzedawca";
+            document.getElementById('profile-xp-bar').style.width = `${(stats.xp / 600) * 100}%`;
+
+            // Sortuj i znajdź pozycję rankingową kasy
+            const sorted = [...leaderboard].sort((a,b) => b.points - a.points);
+            const myIndex = sorted.findIndex(item => item.self) + 1;
+            stats.rank = myIndex;
+            document.getElementById('header-rank').innerHTML = `<i class="fa-solid fa-trophy"></i> #${stats.rank} / ${leaderboard.length}`;
+        }
+
+        function showHelpModal() {
+            document.getElementById('help-modal').classList.remove('hidden');
+        }
+
+        function closeHelpModal() {
+            document.getElementById('help-modal').classList.add('hidden');
+        }
+
+        function resetSimData() {
+            stats = { points: 1450, rank: 3, xp: 420, level: 4 };
+            gamificationTargets = {
+                individual: [
+                    { id: "ind-1", title: "Zrealizuj promocję OXVAKITFREE", current: 8, target: 12, unit: "szt.", xp: 150, category: "Urządzenia" },
+                    { id: "ind-2", title: "Przekonaj do płynu Aroma King LIQKING50", current: 14, target: 20, unit: "szt.", xp: 100, category: "Płyny" }
+                ],
+                team: [
+                    { id: "team-1", title: "Suma promocji kasy w Katowicach", current: 142, target: 200, unit: "akcji", xp: 500 }
+                ]
+            };
+            badges[2].unlocked = false;
+            initApp();
+            showToast("Wyczyszczono dane", "Przywrócono początkowe wskaźniki symulatora.", "info");
+        }
+    </script>
+</body>
+</html>
